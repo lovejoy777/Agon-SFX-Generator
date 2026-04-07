@@ -9,7 +9,7 @@ include "sfx_macros.inc"
     .db "MOS",0,1   
 
 ; --- Constants ---
-MAX_SELECTION:  EQU 16
+MAX_SELECTION:  EQU 17
 COLUMN_INPUT:   EQU 24
 
 ; --- Variables ---
@@ -17,12 +17,15 @@ selection_mode: db 0
 cursor_y_pos:   dw 10   ; start position
 cursorFrame:    db 10
 
+; Waveform
+wave_type:      db 0
+
 ; Volume Envelope (Command 6)
-venv_type:       db 1
-venv_attack:     dl 400
-venv_decay:      dl 100
-venv_sustain:    db 100
-venv_release:    dl 2000
+venv_type:      db 1
+venv_attack:    dl 400
+venv_decay:     dl 100
+venv_sustain:   db 100
+venv_release:   dl 2000
 
 ; Frequency Envelope (Command 7)
 fenv_count:     db 2        ; Number of phases
@@ -48,45 +51,51 @@ text_buffer:    blkb 16, 0
 msg_title:      db "== Agon SFX Generator ==", 13, 10, 0
 msg_title_ul:   db "========================", 0
 
-msg_venv_hdr:   db "VOLUME ENVELOPE    ", 0
+msg_venv_hdr:   db "VOLUME ENVELOPE      ", 0
 msg_hdr_ul:     db "---------------------", 0
-msg_venv_type:  db ": Type     (0-2)   :", 0
-msg_venv_att:   db ": Attack   (ms)    :", 0
-msg_venv_dec:   db ": Decay    (ms)    :", 0
-msg_venv_sus:   db ": Sustain  (0-127) :", 0
-msg_venv_rel:   db ": Release  (ms)    :", 0
+msg_venv_type:  db ": Type      (0-2)   :", 0
+msg_venv_att:   db ": Attack    (ms)    :", 0
+msg_venv_dec:   db ": Decay     (ms)    :", 0
+msg_venv_sus:   db ": Sustain   (0-127) :", 0
+msg_venv_rel:   db ": Release   (ms)    :", 0
 
-msg_fenv_hdr:   db "FREQUENCY ENVELOPE ", 0
-;msg_hdr_ul:    db "-------------------", 0
-msg_fenv_cnt:   db ": Phases   (1-4)   :", 0
-msg_fenv_ctrl:  db ": Control  (0-1)   :", 0
-msg_fenv_step:  db ": Step Len (ms)    :", 0
-msg_fenv_p1a:   db ": P1 Adjust        :", 0
-msg_fenv_p1s:   db ": P1 Steps         :", 0
-msg_fenv_p2a:   db ": P2 Adjust        :", 0
-msg_fenv_p2s:   db ": P2 Steps         :", 0
+msg_fenv_hdr:   db "FREQUENCY ENVELOPE   ", 0
+;msg_hdr_ul:    db "---------------------", 0
+msg_fenv_cnt:   db ": Phases    (1-4)   :", 0
+msg_fenv_ctrl:  db ": Control   (0-1)   :", 0
+msg_fenv_step:  db ": Step Len  (ms)    :", 0
+msg_fenv_p1a:   db ": P1 Adjust         :", 0
+msg_fenv_p1s:   db ": P1 Steps          :", 0
+msg_fenv_p2a:   db ": P2 Adjust         :", 0
+msg_fenv_p2s:   db ": P2 Steps          :", 0
 
-msg_note_hdr:   db "SOUND STATEMENT    ", 0
-;msg_hdr_ul:    db "-------------------", 0
-msg_chan:       db ": Channel  (0-2)   :", 0
-msg_vol:        db ": Volume   (0-127) :", 0
-msg_freq:       db ": Freq     (Hz)    :", 0
-msg_dur:        db ": Duration (ms)    :", 0
+msg_note_hdr:   db "SOUND STATEMENT      ", 0
+;msg_hdr_ul:    db "---------------------", 0
+msg_chan:       db ": Channel   (0-2)   :", 0
+msg_vol:        db ": Volume    (0-127) :", 0
+msg_freq:       db ": Freq      (Hz)    :", 0
+msg_dur:        db ": Duration  (ms)    :", 0
 
-msg_play:       db ": [PLAY SOUND]     :", 0
+msg_wave_hdr:   db "WAVEFORM             ", 0
+;msg_hdr_ul:    db "---------------------", 0
+msg_wave_type:  db ": Type      (0-8)   :", 0
+
+msg_play:       db "[PLAY SOUND]         ", 0
 msg_play_but:   db "play", 0
-;msg_hdr_ul:    db "-------------------", 0
+;msg_hdr_ul:    db "---------------------", 0
 
-msg_footer_hdr:   db "== Instructions ==", 0
-msg_footer_ul:    db "==================", 0
+msg_footer_hdr: db "-- Instructions --", 0
+msg_footer_ul:  db "------------------", 0
 
-msg_footer_0:     db "Use Cursor `Up' & `Down' keys to select the value to edit.", 0
-msg_footer_1:     db "Press `Enter' Key to select `Edit' mode.", 0
-msg_footer_2:     db "Note: ", 0
-msg_footer_3:     db "the cursor box will be cyan when in edit mode.", 0
-msg_footer_4:     db "Input your new Value.", 0
-msg_footer_5:     db "Press `Enter' key again to save the value and exit `Edit' mode.", 0
-msg_footer_6:     db "Finally move the cursor box to `[PLAY SOUND]' and press `Enter'.", 0
+msg_footer_0:   db "Use Cursor `Up' & `Down' keys to select the value to edit.", 0
+msg_footer_1:   db "Press `Enter' Key to select `Edit' mode.", 0
+msg_footer_2:   db "Note: ", 0
+msg_footer_3:   db "the cursor box will be cyan when in edit mode.", 0
+msg_footer_4:   db "Input your new Value.", 0
+msg_footer_5:   db "Press `Enter' key again to save the value and exit `Edit' mode.", 0
+msg_footer_6:   db "Finally move the cursor box to `[PLAY SOUND]' and press `Enter'.", 0
+msg_footer_7:   db "Or pressing the `P' key at any time will also play the sound.", 0
+
 
 parameter_table:
     ; Volume Envelope (0-4)
@@ -159,9 +168,15 @@ parameter_table:
     db 2
     dl dur_val
 
-    ; Play Button (16)
+    ; Waveform (16)
+    db COLUMN_INPUT
+    db 35
+    db 1
+    dl wave_type
+
+    ; Play Button (17)
     db 12
-    db 33
+    db 37
     db 0
     dl 0
 
@@ -214,19 +229,19 @@ draw_ui:
 
     SET_TXT_COL bright_white
 
-    TABTO 3, 10
+    TABTO 2, 10
     ld hl, msg_venv_type
     call print_str
-    TABTO 3, 11
+    TABTO 2, 11
     ld hl, msg_venv_att
     call print_str
-    TABTO 3, 12
+    TABTO 2, 12
     ld hl, msg_venv_dec
     call print_str
-    TABTO 3, 13
+    TABTO 2, 13
     ld hl, msg_venv_sus
     call print_str
-    TABTO 3, 14
+    TABTO 2, 14
     ld hl, msg_venv_rel
     call print_str
 
@@ -242,25 +257,25 @@ draw_ui:
 
     SET_TXT_COL bright_white
 
-    TABTO 3, 18
+    TABTO 2, 18
     ld hl, msg_fenv_cnt
     call print_str
-    TABTO 3, 19
+    TABTO 2, 19
     ld hl, msg_fenv_ctrl
     call print_str
-    TABTO 3, 20
+    TABTO 2, 20
     ld hl, msg_fenv_step
     call print_str
-    TABTO 3, 21
+    TABTO 2, 21
     ld hl, msg_fenv_p1a
     call print_str
-    TABTO 3, 22
+    TABTO 2, 22
     ld hl, msg_fenv_p1s
     call print_str
-    TABTO 3, 23
+    TABTO 2, 23
     ld hl, msg_fenv_p2a
     call print_str
-    TABTO 3, 24
+    TABTO 2, 24
     ld hl, msg_fenv_p2s
     call print_str
 
@@ -275,39 +290,55 @@ draw_ui:
     call print_str
 
     SET_TXT_COL bright_white
-    TABTO 3, 28
+    TABTO 2, 28
     ld hl, msg_chan
     call print_str
-    TABTO 3, 29
+    TABTO 2, 29
     ld hl, msg_vol
     call print_str
-    TABTO 3, 30
+    TABTO 2, 30
     ld hl, msg_freq
     call print_str
-    TABTO 3, 31
+    TABTO 2, 31
     ld hl, msg_dur
+    call print_str
+
+    ; --- Waveform Section (Row 16) ---
+    SET_TXT_COL bright_cyan
+
+    TABTO 2, 33
+    ld hl, msg_wave_hdr
+    call print_str
+    TABTO 2, 34
+    ld hl, msg_hdr_ul
+    call print_str
+
+    SET_TXT_COL bright_white
+    
+    TABTO 2, 35
+    ld hl, msg_wave_type
     call print_str
 
     SET_TXT_COL bright_cyan
 
     ; play
-    TABTO 3, 33
+    TABTO 2, 37
     ld hl, msg_play
     call print_str
-    TABTO 2, 34
+    TABTO 2, 38
     ld hl, msg_hdr_ul
     call print_str
     
     ; play button
-    TABTO 24, 33
+    TABTO 24, 37
     ld hl, msg_play_but
     call print_str
 
     ; Instructions (Title)
-    TABTO 31, 49
+    TABTO 2, 49
     ld hl, msg_footer_hdr
     call print_str
-    TABTO 31, 50
+    TABTO 2, 50
     ld hl, msg_footer_ul
     call print_str
     
@@ -340,6 +371,9 @@ draw_ui:
     call print_str
     TABTO 2, 57
     ld hl, msg_footer_6
+    call print_str
+    TABTO 2, 58
+    ld hl, msg_footer_7
     call print_str
 
     ret
@@ -404,11 +438,18 @@ check_keys:
     call Is_Key_Held_Matrix
     jr nz, move_down
 
+    ; Check P
+    ld b, $06
+    ld c, 7
+    call Is_Key_Held_Matrix
+    jp nz, .do_play
+
     ; Check ENTER
     ld b, $09
     ld c, 1
     call Is_Key_Held_Matrix
     jr nz, handle_enter
+
     ret
 
 move_up:
@@ -612,7 +653,7 @@ play_sfx:
     rst.lil $10
     ld a, 4                     ; Set Waveform
     rst.lil $10
-    ld a, 0                     ; Type 0 (Square)
+    ld a, (wave_type)             ; Type 0 (Square)
     rst.lil $10
 
     ; --- 3. Play the Note ---
