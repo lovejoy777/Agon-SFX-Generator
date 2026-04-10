@@ -1,3 +1,9 @@
+;------------------------------------------------------------------------
+; A simple sound generator for the Agon Light 2.
+; It has volume envelope, frequency evelope, waveform and note settings.
+; By lovejoy777 April 2026
+;------------------------------------------------------------------------
+
 include "sfx_macros.inc"
 
     .assume adl=1
@@ -17,7 +23,7 @@ selection_mode: db 0
 cursor_y_pos:   dw 10   ; start position
 cursorFrame:    db 10
 
-; Waveform
+; Set Waveform (Command 4)
 wave_type:      db 0
 
 ; Volume Envelope (Command 6)
@@ -60,7 +66,6 @@ msg_venv_sus:   db ": Sustain   (0-127) :", 0
 msg_venv_rel:   db ": Release   (ms)    :", 0
 
 msg_fenv_hdr:   db "FREQUENCY ENVELOPE   ", 0
-;msg_hdr_ul:    db "---------------------", 0
 msg_fenv_cnt:   db ": Phases    (1-4)   :", 0
 msg_fenv_ctrl:  db ": Control   (0-1)   :", 0
 msg_fenv_step:  db ": Step Len  (ms)    :", 0
@@ -70,19 +75,16 @@ msg_fenv_p2a:   db ": P2 Adjust         :", 0
 msg_fenv_p2s:   db ": P2 Steps          :", 0
 
 msg_note_hdr:   db "SOUND STATEMENT      ", 0
-;msg_hdr_ul:    db "---------------------", 0
 msg_chan:       db ": Channel   (0-2)   :", 0
 msg_vol:        db ": Volume    (0-127) :", 0
 msg_freq:       db ": Freq      (Hz)    :", 0
 msg_dur:        db ": Duration  (ms)    :", 0
 
 msg_wave_hdr:   db "WAVEFORM             ", 0
-;msg_hdr_ul:    db "---------------------", 0
 msg_wave_type:  db ": Type      (0-8)   :", 0
 
 msg_play:       db "[PLAY SOUND]         ", 0
 msg_play_but:   db "play", 0
-;msg_hdr_ul:    db "---------------------", 0
 
 msg_footer_hdr: db "-- Instructions --", 0
 msg_footer_ul:  db "------------------", 0
@@ -187,7 +189,9 @@ start_here:
     push ix
     push iy
 
+    ;-------------------------
     ; Initial Hardware Setup
+    ;-------------------------
     SET_MODE 0
     SET_NONSCALED_GRAPHICS
     SET_TXT_BG_COL black
@@ -208,7 +212,9 @@ main_loop:
     Update_GPU 
     jp main_loop
 
+;--------------------
 ; --- UI Routines ---
+;--------------------
 draw_ui:
     SET_TXT_COL bright_cyan
 
@@ -219,7 +225,9 @@ draw_ui:
     ld hl, msg_title_ul
     call print_str
 
+    ;-------------------------------------------
     ; --- Volume Envelope Section (Rows 4-9) ---
+    ;-------------------------------------------
     TABTO 2, 8
     ld hl, msg_venv_hdr
     call print_str
@@ -245,7 +253,9 @@ draw_ui:
     ld hl, msg_venv_rel
     call print_str
 
+    ;------------------------------------------------
     ; --- Frequency Envelope Section (Rows 11-18) ---
+    ;------------------------------------------------
     SET_TXT_COL bright_cyan
 
     TABTO 2, 16
@@ -279,7 +289,9 @@ draw_ui:
     ld hl, msg_fenv_p2s
     call print_str
 
+    ;---------------------------------------------
     ; --- Sound Statement Section (Rows 20-24) ---
+    ;---------------------------------------------
     SET_TXT_COL bright_cyan
 
     TABTO 2, 26
@@ -303,7 +315,9 @@ draw_ui:
     ld hl, msg_dur
     call print_str
 
+    ;----------------------------------
     ; --- Waveform Section (Row 16) ---
+    ;----------------------------------
     SET_TXT_COL bright_cyan
 
     TABTO 2, 33
@@ -333,6 +347,8 @@ draw_ui:
     TABTO 24, 37
     ld hl, msg_play_but
     call print_str
+
+;----------------------------------------------
 
     ; Instructions (Title)
     TABTO 2, 49
@@ -379,7 +395,7 @@ draw_ui:
     ret
 
 update_cursor_pos:
-    call get_table_ptr          ; This already uses BC=6 and handles the loop correctly
+    call get_table_ptr          
 
     inc hl                      ; Skip X
     ld a, (hl)                  ; Load Y Row
@@ -449,6 +465,13 @@ check_keys:
     ld c, 1
     call Is_Key_Held_Matrix
     jr nz, handle_enter
+
+    ; Check ESCAPE
+    ld b, $0E
+    ld c, 0
+    call Is_Key_Held_Matrix
+    jp nz, BackToMos
+
 
     ret
 
@@ -559,7 +582,9 @@ buffer_to_int:
     jr .loop
 
 play_sfx:
+    ;-------------------------------
     ; --- 1. Set Volume Envelope ---
+    ;-------------------------------
     ld a, 23
     rst.lil $10
     ld a, 0
@@ -568,7 +593,7 @@ play_sfx:
     rst.lil $10
     ld a, (chan_val)
     rst.lil $10
-    ld a, 6                     ; Set Volume Envelope Sub-command
+    ld a, 6                     ; Command 6: Volume Envelope
     rst.lil $10
     ld a, (venv_type)
     rst.lil $10
@@ -594,7 +619,9 @@ play_sfx:
     ld a, h
     rst.lil $10
     
-    ; --- Set Frequency Envelope ---
+    ;----------------------------------
+    ; --- 2. Set Frequency Envelope ---
+    ;----------------------------------
     ld a, 23
     rst.lil $10
     ld a, 0
@@ -642,7 +669,9 @@ play_sfx:
     ld a, h
     rst.lil $10
 
-    ; --- 2. Set Waveform ---
+    ;------------------------
+    ; --- 3. Set Waveform ---
+    ;------------------------
     ld a, 23
     rst.lil $10
     ld a, 0
@@ -651,12 +680,14 @@ play_sfx:
     rst.lil $10
     ld a, (chan_val)
     rst.lil $10
-    ld a, 4                     ; Set Waveform
+    ld a, 4                     ; Command 4: Set Waveform
     rst.lil $10
-    ld a, (wave_type)             ; Type 0 (Square)
+    ld a, (wave_type)           ; Type
     rst.lil $10
 
-    ; --- 3. Play the Note ---
+    ;-------------------------
+    ; --- 4. Play the Note ---
+    ;-------------------------
     ld a, 23
     rst.lil $10
     ld a, 0
@@ -665,7 +696,7 @@ play_sfx:
     rst.lil $10
     ld a, (chan_val)
     rst.lil $10
-    ld a, 0                     ; Play Note Command
+    ld a, 0                     ; Command 0: Play Note Command
     rst.lil $10
     ld a, (vol_val)
     rst.lil $10
@@ -800,6 +831,7 @@ print_str:
     inc hl
     jr print_str
 
+;------------------------------------
 wait_for_keyup:                         ; wait for key up state so we only do it once
     MOSCALL $08                         ; get IX pointer to sysvars
     ld a, (ix + 18h)                    ; get key state
@@ -807,6 +839,7 @@ wait_for_keyup:                         ; wait for key up state so we only do it
     jp nz, wait_for_keyup               ; loop if there is a key still pressed
     ret
 
+;-----------------------------------
 get_table_ptr:
     ld hl, parameter_table      ; Start at the beginning
     ld a, (selection_mode)      ; Get the current index
@@ -821,12 +854,10 @@ get_table_ptr:
     ret
 
 ; =============================================================================
-; Purpose: Draw the already-loaded Buffer 15 to the screen
+; Draw the already-loaded Buffer 15 to the screen
 ; =============================================================================
 
 Draw_Note_Image:
-    ;Draw_Rect x1, y1, x2, y2, bgcol
-   ; Draw_Filled_Rect 63, 20, 254, 67, (banner_colour)
     ; select and draw the title top
 	ld a, 250
 	ld (bitmap_x),a
@@ -856,10 +887,10 @@ bitmap_x:	.dw 0	      	        ; to x pos (a word not a byte) 63
 bitmap_y:	.dw 0		         	; to y pos (a word not a byte) 83
 draw_bmEnd:
 
-;---------------------------------
-; Cursor Asset, Sprite 1
-;---------------------------------
-; Cursor Loader, using mono pbm file, buffers 1
+;-------------------------------------
+; Cursor Asset, Sprite 0 frames 0 & 1
+;-------------------------------------
+; Cursor Loader, using mono pbm files, buffers 10 & 11
 Load_Cursor_Assets:
 
     Select_Sprite_8bit 0
@@ -879,7 +910,7 @@ Load_Cursor_Assets:
     ret
 
 ; ---- Cursor .pbm mono images ----
-                     ; id,  w,  h,  data,                 colourCode
+                     ; id, w, h,  data,         colour
 loadCursor:	
 	MAKEBUFFEREDBITMAP 10, 32, 8, "cursor.pbm", bright_white
 endLoadCursor: 
@@ -903,7 +934,7 @@ Load_Note_Asset:
     ret
 
 loadGraphics:	
-	;                  id, width, height,    data,        colourCode
+	;                  id,  W,    H, data,       colour
 	MAKEBUFFEREDBITMAP 15, 400, 212, "note.pbm", grey 
 endLoadGraphics:
 
@@ -917,7 +948,7 @@ Is_Key_Held_Matrix:
     push bc
     
     ld a, $1E
-    rst.lil $08             ; IX = Pointer to keyboard matrix Decode_Room_Metadata
+    rst.lil $08             ; IX = Pointer to keyboard matrix
     
     push ix
     pop hl                  ; HL = Start of matrix
@@ -942,3 +973,19 @@ _do_test:
     and b                   ; Isolate the bit (1 if pressed)
     pop ix
     ret
+
+; ----------------------------------
+; This is where we exit the program
+;-----------------------------------
+BackToMos:
+    CLS 
+    pop iy                              ; Pop all registers back from the stack
+    pop ix
+    pop de
+    pop bc
+    pop af
+    ld hl,0   
+
+    RST $00         ; Call reset 0, returns to command prompt
+
+    ret 

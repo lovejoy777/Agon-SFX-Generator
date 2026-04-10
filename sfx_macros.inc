@@ -1,3 +1,5 @@
+; Macro file for sfx_gen.asm
+
 ; Call a MOS API function
 macro MOSCALL arg1
 	ld a, arg1
@@ -20,28 +22,12 @@ macro CLS
 	rst.lil $10
 endmacro
 
-; Clear the graphics area
-macro CLG
-	ld a, 16                    ; clear screen
-	rst.lil $10
-endmacro
-
 ; Set Screen Mode
 macro SET_MODE mode
 	ld a, 22					; set mode...
 	rst.lil $10
 	ld a, mode					; to mode
 	rst.lil $10
-endmacro
-
-macro TEXT_AT_TEXT_CURSOR
-    ld a, 4
-    rst.lil $10
-endmacro
-
-macro TEXT_AT_GRAPHICS_CURSOR
-    ld a, 5
-    rst.lil $10
 endmacro
 
 ; Set Text Foreground Colour
@@ -58,27 +44,6 @@ macro SET_TXT_BG_COL col
 	rst.lil $10
     ld a, col                   ; background colour to use
     add a, 128					    
-	rst.lil $10
-endmacro
-
-; Set Graphics Foreground Colour (GCOL)
-macro SET_GCOL_COL col
-	ld a, 18					; set graphics colour
-	rst.lil $10
-    ld a, 0                     ; mode 0
-    rst.lil $10
-	ld a, col					; colour to use
-	rst.lil $10
-endmacro
-
-; Set Graphics Background Colour (GCOL)
-macro SET_GCOL_BG_COL col
-	ld a, 18					; set graphics colour
-	rst.lil $10
-    ld a, 0                     ; mode 0
-    rst.lil $10
-	ld a, col		            ; colour to use
-    add a, 128
 	rst.lil $10
 endmacro
 
@@ -119,56 +84,6 @@ macro TABTO x, y
     rst.lil $10
     ld a, y
     rst.lil $10
-endmacro
-
-; Plot for Text
-macro Plot_For_Text plot_x, plot_y
-    ld a, 25
-    rst.lil $10
-    ld a, 4                     ; Command: Plot.
-    rst.lil $10
-    ld a, plot_x
-    rst.lil $10
-    ld a, 0
-    rst.lil $10
-    ld a, plot_y
-    rst.lil $10
-    ld a, 0
-    rst.lil $10
-endmacro
-
-;-----------------------------------
-; draw filled colour rectangle.
-;-----------------------------------
-macro Draw_Filled_Rect x1, y1, x2, y2, bgcol
-    SET_GCOL_COL bgcol  ; set rec colour
-    ; top left
-    ld a, 25
-    rst.lil $10
-    ld a, 69
-    rst.lil $10
-    ld a, x1         ; start x
-    rst.lil $10
-    ld a, 0
-    rst.lil $10
-    ld a, y1         ; start y
-    rst.lil $10
-    ld a, 0
-    rst.lil $10
-    ; bottom right
-    ld a, 25
-    rst.lil $10
-    ld a, 101
-    rst.lil $10
-    ld a, x2
-    rst.lil $10
-    ld a, 0
-    rst.lil $10
-    ld a, y2
-    rst.lil $10
-    ld a, 0
-    rst.lil $10
-    SET_GCOL_COL black            ; reset gcol colour to black.
 endmacro
 
 macro Show_Sprite
@@ -243,96 +158,12 @@ macro Load_Next_Frame
     rst.lil $10
 endmacro
 
-macro plot_text_pos pxx, pxy
-    ; Plot for Text
-    ld a, 25
-    rst.lil $10
-    ld a, 4                     ; Command: Plot.
-    rst.lil $10
-
-    ld a, pxx                   ; x
-    rst.lil $10
-    ld a, 0
-    rst.lil $10
-
-    ld a, pxy                   ; y
-    rst.lil $10
-    ld a, 0
-    rst.lil $10
-endmacro
-
 macro Update_GPU
     ld a, 23
     rst.lil $10
     ld a, 27
     rst.lil $10
     ld a, 15           ; Command: update gpu
-    rst.lil $10
-endmacro
-
-;VDU 23, 0, &83, x; y;: Get ASCII code of character at character position x, y
-macro read_char_at ch_x, ch_y
-    ld a, 23
-    rst.lil $10
-    ld a, 0                     
-    rst.lil $10
-    ld a, $83                     ; Command: read char at position.
-    rst.lil $10
-
-    ld hl, ch_x                    ; char x
-    ld a, l
-    rst.lil $10
-    ld a, h
-    rst.lil $10
-
-    ld hl, ch_y                    ; char y
-    ld a, l
-    rst.lil $10
-    ld a, h
-    rst.lil $10
-endmacro
-
-;--------------------------
-; Play a Note 
-;--------------------------
-macro playNote chan, vol, freq, dur 
-    ld a, 23
-    rst.lil $10
-    ld a, 0
-    rst.lil $10
-    ld a, $85            ; Command: Sound
-    rst.lil $10
-    ld a, chan           ; channel
-    rst.lil $10
-    ld a, 0              ; Command: Play Note
-    rst.lil $10
-    ld a, vol            ; volume
-    rst.lil $10
-    ld hl, freq        ; frequency 
-    ld a, l
-    rst.lil $10
-    ld a, h              ; feq
-    rst.lil $10
-    ld hl, dur           ; duration 
-    ld a, l           ; frequency 
-    rst.lil $10
-    ld a, h           ; frequency 
-    rst.lil $10
-    
-endmacro
-
-macro setWaveform chan, type
-    ld a, 23
-    rst.lil $10
-    ld a, 0
-    rst.lil $10
-    ld a, $85            ; Command: Sound
-    rst.lil $10
-    ld a, chan           ; channel
-    rst.lil $10
-    ld a, 4              ; Command: set waveform
-    rst.lil $10
-    ld a, type           ; type
     rst.lil $10
 endmacro
 
